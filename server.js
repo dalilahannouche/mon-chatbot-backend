@@ -113,7 +113,7 @@ app.get("/", (req, res) => {
 });
 
 // Route POST pour le chatbot utilisant le modèle Gemini directement
-app.post("/api/chat", async (req, res) => {
+app.post("https://mon-chatbot-backend.onrender.com/api/chat", async (req, res) => {
   const { message } = req.body;
   try {
     // Utilisation de l'instance Gemini pour générer la réponse
