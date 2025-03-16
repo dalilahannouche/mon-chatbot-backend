@@ -99,7 +99,7 @@ const model = genAI.getGenerativeModel({
 // Configuration CORS
 app.use(
   cors({
-    origin: "https://dalilahannouche.github.io", // Autoriser GitHub Pages
+    origin: "https://dalilahannouche.github.io/mon-chatbot-gemini/", // Autoriser GitHub Pages
     methods: "GET,POST", // Autoriser uniquement les méthodes nécessaires
     allowedHeaders: "Content-Type"
   })
@@ -113,7 +113,7 @@ app.get("/", (req, res) => {
 });
 
 // Route POST pour le chatbot utilisant le modèle Gemini directement
-app.post("https://mon-chatbot-backend.onrender.com/api/chat", async (req, res) => {
+app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
   try {
     // Utilisation de l'instance Gemini pour générer la réponse
