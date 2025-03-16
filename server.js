@@ -100,8 +100,6 @@ const model = genAI.getGenerativeModel({
 app.use(
   cors({
     origin: "https://dalilahannouche.github.io", // Autoriser GitHub Pages
-    methods: "GET,POST", // Autoriser uniquement les méthodes nécessaires
-    allowedHeaders: "Content-Type"
   })
   );
 
