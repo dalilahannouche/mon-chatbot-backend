@@ -99,7 +99,7 @@ const model = genAI.getGenerativeModel({
 // Configuration CORS
 app.use(
   cors({
-    origin: "https://dalilahannouche.github.io/mon-chatbot-gemini/", // Autoriser GitHub Pages
+    origin: "https://dalilahannouche.github.io", // Autoriser GitHub Pages
     methods: "GET,POST", // Autoriser uniquement les méthodes nécessaires
     allowedHeaders: "Content-Type"
   })
