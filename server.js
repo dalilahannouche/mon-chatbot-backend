@@ -103,6 +103,7 @@ app.use(
     methods: "GET,POST", // Autoriser uniquement les méthodes nécessaires
     allowedHeaders: "Content-Type"
   })
+  );
 
 app.use(express.json());
 
