@@ -12,8 +12,8 @@ const app = express();
 const apiKey = process.env.API_KEY;  // Récupérer la clé API depuis les variables d'environnement
 console.log(apiKey);
 
-const portfolioLink = "https://dalilahannouche.wixsite.com/portfolio";
-const linkedinLink = "https://www.linkedin.com/in/dalila-h-8a6896143";
+const githubLink = "https://github.com/dalilahannouche";
+const linkedinLink = "https://www.linkedin.com/in/dalilahannouche";
 
 // Text generation / documentation Google Gemini for Developers
 // https://ai.google.dev/gemini-api/docs/text-generation?lang=node#chat
@@ -43,8 +43,8 @@ const model = genAI.getGenerativeModel({
     Germany’s thriving tech industry inspires me to push my boundaries.
     I am focused on developing my expertise in modern front-end frameworks, expanding my backend knowledge with Python and Django, and contributing to innovative projects.
     
-    Portfolio & LinkedIn:
-    Portfolio: ${portfolioLink}
+    Github & LinkedIn:
+    Github: ${githubLink}
     LinkedIn:  ${linkedinLink}
 
     Closing Statement:
@@ -67,8 +67,8 @@ const model = genAI.getGenerativeModel({
     Proven adaptability to new environments and challenges.
     A commitment to delivering user-centric solutions.
     
-    5. What’s your portfolio link?
-    You can view my portfolio here: ${portfolioLink}.
+    5. What’s your github link?
+    You can view my github here: ${githubLink}.
     
     6. Where can I find you on LinkedIn?
     Connect with me on LinkedIn: ${linkedinLink}.
