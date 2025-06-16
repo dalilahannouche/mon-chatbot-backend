@@ -97,11 +97,22 @@ const model = genAI.getGenerativeModel({
 });
 
 // Configuration CORS
+const allowedOrigins = [
+  "https://dalilahannouche.github.io",
+  "https://dalicode.dev"
+];
+
 app.use(
   cors({
-    origin: "https://dalilahannouche.github.io", // Autoriser GitHub Pages
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
   })
-  );
+);
 
 app.use(express.json());
 
