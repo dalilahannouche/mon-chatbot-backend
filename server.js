@@ -10,61 +10,33 @@ const app = express();
 const apiKey = process.env.API_KEY;
 const genAI = new GoogleGenAI({ apiKey });
 
+// GitHub and LinkedIn links
 const githubLink = "https://github.com/dalilahannouche";
 const linkedinLink = "https://www.linkedin.com/in/dalilahannouche";
 
-// Prompt complet
+// === Structured system prompt ===
 const systemInstructionText = `
-Profile Overview:
-Hi, my name is Dalila Hannouche. I am a creative and motivated Front-End Developer with 2+ years of experience in designing and developing responsive, user-friendly web applications. My journey is unique, as I transitioned from Algeria to Greece to work with international companies like Teleperformance, Expedia Group, and Concentrix. Now, I am in Germany, where I aim to enhance my skills and succeed in a country known for its technological excellence.
+You are Dalila, a chatbot specialized in answering only questions about the professional profile of Dalila Hannouche.
 
-Why a Company Should Hire Me:
-Technical Skills:
-Expertise in HTML, CSS, JavaScript, Wordpress and Odoo.
-Familiarity with frameworks and libraries such as React and TypeScript (actively improving my knowledge).
-Experience optimizing websites for SEO and performance.
-Professional Experience:
-Worked in high-pressure environments requiring excellent communication and problem-solving skills.
-Handled customer support roles for leading companies like Apple and Airbnb, enhancing my ability to collaborate effectively with diverse teams and understand user needs.
-Successfully transitioned back to my passion for web development, leveraging skills in ERP systems like Odoo.
+Examples:
+Q: What are your technical skills?
+A: I am skilled in HTML, CSS, JavaScript, WordPress, Odoo, and I am continuously learning React and TypeScript.
 
-Soft Skills:
-Multilingual: Fluent in Arabic, French, and English, with a growing proficiency in German.
-Adaptable and resilient, having navigated international career transitions and cultural shifts.
-Strong commitment to continuous learning and improvement.
+Q: What is your international experience?
+A: I have worked in Algeria, Greece with Teleperformance, Expedia Group, and Concentrix, and now I am in Germany to further develop my front-end and back-end skills.
 
-Goals in Germany:
-Germany’s thriving tech industry inspires me to push my boundaries.
-I am focused on developing my expertise in modern front-end frameworks, expanding my backend knowledge with Python and Django, and contributing to innovative projects.
+Q: Can you share your GitHub?
+A: My GitHub is ${githubLink}
 
-Github & LinkedIn:
-Github: ${githubLink}
-LinkedIn: ${linkedinLink}
+Q: Can you share your LinkedIn?
+A: My LinkedIn is ${linkedinLink}
 
-Closing Statement:
-I am eager to bring my unique background, technical expertise, and dedication to excellence to your team.
-
-FAQs :
-1. Who are you?
-I am Dalila Hannouche, a front-end developer with a creative mindset and over 2 years of experience in web development. I transitioned from Algeria to Greece to work with global companies and I’m now in Germany to further my career.
-2. What is your area of expertise?
-I specialize in front-end development, focusing on responsive designs, user-friendly interfaces, and SEO optimization. I have expertise in HTML, CSS, JavaScript, WordPress and am continuously learning React, TypeScript, and backend technologies like Python/Django.
-3. Why did you transition to Germany?
-Germany is a hub for technology and innovation. My goal is to grow my skills in this advanced environment and contribute to impactful projects.
-4. Why should a company hire you?
-I bring:
-A unique blend of technical and customer-facing experience.
-Proven adaptability to new environments and challenges.
-A commitment to delivering user-centric solutions.
-5. What’s your github link?
-${githubLink}
-6. Where can I find you on LinkedIn?
-${linkedinLink}
-7. What hobbies do you have?
-Outside of work, I enjoy expressing creativity through painting and playing the piano. I’m also the author of a French book, Révèle-moi ton secret, which reflects my passion for storytelling.
+- Always respond concisely and professionally.
+- Never deviate from Dalila's profile.
+- If the question is unrelated, respond: "I can only answer questions about Dalila Hannouche."
 `;
 
-// Configuration CORS sécurisée
+// === Secure CORS configuration ===
 const allowedOrigins = ["https://dalicode.dev"];
 app.use(cors({
   origin: (origin, callback) => {
@@ -75,43 +47,55 @@ app.use(cors({
 
 app.use(express.json());
 
-app.get("/", (req, res) => res.send("API fonctionne !"));
+// Test route
+app.get("/", (req, res) => res.send("API is working!"));
 
-// Route GET /api/chat pour SSE
-app.get("/api/chat", async (req, res) => {
-  const message = req.query.message;
+// POST /api/chat route (SSE streaming)
+app.post("/api/chat", async (req, res) => {
+  const { message, history } = req.body;
   if (!message) return res.status(400).json({ error: "No message provided" });
 
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
   try {
+    // SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    // Prepare conversation history
+    const conversation = [
+      { role: "system", text: systemInstructionText },
+      ...(Array.isArray(history)
+        ? history.map(msg => ({
+            role: msg.role === "user" ? "user" : "assistant",
+            text: msg.text
+          }))
+        : []),
+      { role: "user", text: message }
+    ];
+
+    // Generate streaming response
     const responseStream = await genAI.models.generateContentStream({
       model: "gemini-2.5-flash",
-      contents: [
-        { role: "system", text: systemInstructionText },
-        { role: "user", text: message }
-      ]
+      contents: conversation
     });
 
-    // Envoyer chaque chunk dès qu'il arrive
     for await (const chunk of responseStream) {
       if (chunk.text) {
         res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
       }
     }
 
-    // Fin du flux
+    // End of stream
     res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
 
   } catch (error) {
-    console.error("Erreur modèle :", error);
-    res.write(`data: ${JSON.stringify({ error: "Erreur serveur" })}\n\n`);
+    console.error("Model error:", error);
+    res.write(`data: ${JSON.stringify({ error: "Internal server error" })}\n\n`);
     res.end();
   }
 });
 
+// Start server
 const port = process.env.PORT || 10000;
-app.listen(port, () => console.log(`Serveur démarré sur le port ${port}`));
+app.listen(port, () => console.log(`Server started on port ${port}`));
