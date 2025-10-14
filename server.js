@@ -1,19 +1,17 @@
-// server.js (Côté serveur)
+// server.js
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 
-dotenv.config(); // Récupérer la clé API depuis le fichier .env
+dotenv.config();
 
 const app = express();
+const apiKey = process.env.API_KEY;
+const genAI = new GoogleGenAI({ apiKey });
 
 const githubLink = "https://github.com/dalilahannouche";
 const linkedinLink = "https://www.linkedin.com/in/dalilahannouche";
-
-
-const apiKey = process.env.API_KEY;
-const genAI = new GoogleGenAI({ apiKey });
 
 // Ton prompt complet
 const systemInstructionText = `
@@ -66,31 +64,19 @@ ${linkedinLink}
 Outside of work, I enjoy expressing creativity through painting and playing the piano. I’m also the author of a French book, Révèle-moi ton secret, which reflects my passion for storytelling.
 `;
 
-// === Configuration CORS sécurisée ===
-const allowedOrigins = [
-  "https://dalicode.dev",
-  "https://dalilahannouche.github.io" // si nécessaire
-];
-
+const allowedOrigins = ["https://dalicode.dev"];
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
+    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+    else callback(new Error("Not allowed by CORS"));
   }
 }));
 
-// Parse JSON
 app.use(express.json());
 
-// Route test
-app.get("/", (req, res) => {
-  res.send("API fonctionne correctement !");
-});
+app.get("/", (req, res) => res.send("API fonctionne !"));
 
-// Route POST /api/chat (streaming SSE)
+// Route POST /api/chat (SSE)
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "No message provided" });
@@ -109,23 +95,23 @@ app.post("/api/chat", async (req, res) => {
       ]
     });
 
-    // Envoyer chaque chunk dès qu'il arrive
+    // Envoyer chaque chunk au front dès qu'il arrive
     for await (const chunk of responseStream) {
       if (chunk.text) {
-        res.write(`data: ${chunk.text}\n\n`);
+        res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
       }
     }
 
-    // Terminer le flux
-    res.write("data: [DONE]\n\n");
+    // Fin du flux
+    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
     res.end();
 
   } catch (error) {
     console.error("Erreur modèle :", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    res.write(`data: ${JSON.stringify({ error: "Erreur interne du serveur" })}\n\n`);
+    res.end();
   }
 });
 
-// Démarrage du serveur
 const port = process.env.PORT || 10000;
 app.listen(port, () => console.log(`Serveur démarré sur le port ${port}`));
