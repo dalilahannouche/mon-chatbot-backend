@@ -1,5 +1,5 @@
 // server.js (Côté serveur)
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
@@ -7,18 +7,16 @@ import cors from "cors";
 dotenv.config(); // Récupérer la clé API depuis le fichier .env
 
 const app = express();
-const apiKey = process.env.API_KEY;  // Clé API
-console.log("API_KEY:", apiKey);
 
 const githubLink = "https://github.com/dalilahannouche";
 const linkedinLink = "https://www.linkedin.com/in/dalilahannouche";
 
-// Initialisation Google Gemini
-const genAI = new GoogleGenerativeAI(apiKey);
 
-const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-pro-latest", // remplacement de gemini-1.5-pro
-  systemInstruction: `
+const apiKey = process.env.API_KEY;
+const genAI = new GoogleGenAI({ apiKey });
+
+// Ton prompt complet
+const systemInstructionText = `
 Profile Overview:
 Hi, my name is Dalila Hannouche. I am a creative and motivated Front-End Developer with 2+ years of experience in designing and developing responsive, user-friendly web applications. My journey is unique, as I transitioned from Algeria to Greece to work with international companies like Teleperformance, Expedia Group, and Concentrix. Now, I am in Germany, where I aim to enhance my skills and succeed in a country known for its technological excellence.
 
@@ -66,19 +64,21 @@ ${githubLink}
 ${linkedinLink}
 7. What hobbies do you have?
 Outside of work, I enjoy expressing creativity through painting and playing the piano. I’m also the author of a French book, Révèle-moi ton secret, which reflects my passion for storytelling.
-`
-});
+`;
 
-// Configuration CORS
+// === Configuration CORS sécurisée ===
 const allowedOrigins = [
-  "https://dalilahannouche.github.io",
-  "https://dalicode.dev"
+  "https://dalicode.dev",
+  "https://dalilahannouche.github.io" // si nécessaire
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error("Not allowed by CORS"));
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
   }
 }));
 
@@ -90,33 +90,42 @@ app.get("/", (req, res) => {
   res.send("API fonctionne correctement !");
 });
 
-// Route POST /api/chat (streaming)
+// Route POST /api/chat (streaming SSE)
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
-
   if (!message) return res.status(400).json({ error: "No message provided" });
 
   try {
-    // Streaming du chatbot
-    const result = await model.generateContentStream({
-      contents: [{ role: "user", parts: [{ text: message }] }]
+    // Headers SSE
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    const responseStream = await genAI.models.generateContentStream({
+      model: "gemini-2.5-flash",
+      contents: [
+        { role: "system", text: systemInstructionText },
+        { role: "user", text: message }
+      ]
     });
 
-    let responseText = "";
-    for await (const chunk of result.stream) {
-      responseText += chunk.text();
+    // Envoyer chaque chunk dès qu'il arrive
+    for await (const chunk of responseStream) {
+      if (chunk.text) {
+        res.write(`data: ${chunk.text}\n\n`);
+      }
     }
 
-    res.json({ message: responseText });
+    // Terminer le flux
+    res.write("data: [DONE]\n\n");
+    res.end();
 
   } catch (error) {
-    console.error("Erreur lors de l'appel au modèle:", error);
+    console.error("Erreur modèle :", error);
     res.status(500).json({ error: "Erreur interne du serveur" });
   }
 });
 
 // Démarrage du serveur
 const port = process.env.PORT || 10000;
-app.listen(port, () => {
-  console.log(`Serveur démarré sur le port ${port}`);
-});
+app.listen(port, () => console.log(`Serveur démarré sur le port ${port}`));
