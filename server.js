@@ -13,7 +13,7 @@ const genAI = new GoogleGenAI({ apiKey });
 const githubLink = "https://github.com/dalilahannouche";
 const linkedinLink = "https://www.linkedin.com/in/dalilahannouche";
 
-// Ton prompt complet
+// Prompt complet
 const systemInstructionText = `
 Profile Overview:
 Hi, my name is Dalila Hannouche. I am a creative and motivated Front-End Developer with 2+ years of experience in designing and developing responsive, user-friendly web applications. My journey is unique, as I transitioned from Algeria to Greece to work with international companies like Teleperformance, Expedia Group, and Concentrix. Now, I am in Germany, where I aim to enhance my skills and succeed in a country known for its technological excellence.
@@ -64,6 +64,7 @@ ${linkedinLink}
 Outside of work, I enjoy expressing creativity through painting and playing the piano. I’m also the author of a French book, Révèle-moi ton secret, which reflects my passion for storytelling.
 `;
 
+// Configuration CORS sécurisée
 const allowedOrigins = ["https://dalicode.dev"];
 app.use(cors({
   origin: (origin, callback) => {
@@ -76,17 +77,16 @@ app.use(express.json());
 
 app.get("/", (req, res) => res.send("API fonctionne !"));
 
-// Route POST /api/chat (SSE)
-app.post("/api/chat", async (req, res) => {
-  const { message } = req.body;
+// Route GET /api/chat pour SSE
+app.get("/api/chat", async (req, res) => {
+  const message = req.query.message;
   if (!message) return res.status(400).json({ error: "No message provided" });
 
-  try {
-    // Headers SSE
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
 
+  try {
     const responseStream = await genAI.models.generateContentStream({
       model: "gemini-2.5-flash",
       contents: [
@@ -95,7 +95,7 @@ app.post("/api/chat", async (req, res) => {
       ]
     });
 
-    // Envoyer chaque chunk au front dès qu'il arrive
+    // Envoyer chaque chunk dès qu'il arrive
     for await (const chunk of responseStream) {
       if (chunk.text) {
         res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
@@ -108,7 +108,7 @@ app.post("/api/chat", async (req, res) => {
 
   } catch (error) {
     console.error("Erreur modèle :", error);
-    res.write(`data: ${JSON.stringify({ error: "Erreur interne du serveur" })}\n\n`);
+    res.write(`data: ${JSON.stringify({ error: "Erreur serveur" })}\n\n`);
     res.end();
   }
 });
