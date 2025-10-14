@@ -15,8 +15,9 @@ const linkedinLink = "https://www.linkedin.com/in/dalilahannouche";
 
 // Initialisation Google Gemini
 const genAI = new GoogleGenerativeAI(apiKey);
+
 const model = genAI.getGenerativeModel({
-  model: "gemini-1.5-flash", // remplacement de gemini-1.5-pro
+  model: "gemini-1.5-pro-latest", // remplacement de gemini-1.5-pro
   systemInstruction: `
 Profile Overview:
 Hi, my name is Dalila Hannouche. I am a creative and motivated Front-End Developer with 2+ years of experience in designing and developing responsive, user-friendly web applications. My journey is unique, as I transitioned from Algeria to Greece to work with international companies like Teleperformance, Expedia Group, and Concentrix. Now, I am in Germany, where I aim to enhance my skills and succeed in a country known for its technological excellence.
