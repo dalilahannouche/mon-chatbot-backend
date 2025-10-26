@@ -7,14 +7,15 @@ dotenv.config(); // Récupérer la clé API depuis le fichier .env
 import express from "express";
 import cors from "cors";
 
-// 🔥 Empêche le buffering des réponses SSE (utile sur Render, Nginx, etc.)
+
+
+
+const app = express();
+// Empêche le buffering des réponses SSE (utile sur Render, Nginx, etc.)
 app.use((req, res, next) => {
   res.setHeader("X-Accel-Buffering", "no"); // désactive le buffering côté proxy
   next();
 });
-
-
-const app = express();
 
 const apiKey = process.env.API_KEY;  // Récupérer la clé API depuis les variables d'environnement
 console.log(apiKey);
