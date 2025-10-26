@@ -1,101 +1,145 @@
-// server.js
-import { GoogleGenAI } from "@google/genai";
+// server.js (Côté serveur)
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import dotenv from "dotenv";
+
+dotenv.config(); // Récupérer la clé API depuis le fichier .env
+
 import express from "express";
 import cors from "cors";
 
-dotenv.config();
-
 const app = express();
-const apiKey = process.env.API_KEY;
-const genAI = new GoogleGenAI({ apiKey });
 
-// GitHub and LinkedIn links
+const apiKey = process.env.API_KEY;  // Récupérer la clé API depuis les variables d'environnement
+console.log(apiKey);
+
 const githubLink = "https://github.com/dalilahannouche";
 const linkedinLink = "https://www.linkedin.com/in/dalilahannouche";
 
-// === Structured system prompt ===
-const systemInstructionText = `
-You are Dalila, a chatbot specialized in answering only questions about the professional profile of Dalila Hannouche.
+// Text generation / documentation Google Gemini for Developers
+// https://ai.google.dev/gemini-api/docs/text-generation?lang=node#chat
+const genAI = new GoogleGenerativeAI(apiKey);
+const model = genAI.getGenerativeModel({
+  model: "gemini-2.5-pro",
+  systemInstruction: `
+    Profile Overview:
+    Hi, my name is Dalila Hannouche. I am a creative and motivated Front-End Developer with 2+ years of experience in designing and developing responsive, user-friendly web applications. My journey is unique, as I transitioned from my home country, Algeria, to Greece to pursue a career working with international companies such as Teleperformance, Expedia Group, and Concentrix. Now, I am in Germany, where I aim to enhance my skills and succeed in a country known for its technological excellence.
+    
+    Why a Company Should Hire Me:
+    Technical Skills:
+    Expertise in HTML, CSS, JavaScript, Wordpress and Odoo.
+    Familiarity with frameworks and libraries such as React and TypeScript (actively improving my knowledge).
+    Experience optimizing websites for SEO and performance.
+    Professional Experience:
+    Worked in high-pressure environments requiring excellent communication and problem-solving skills.
+    Handled customer support roles for leading companies like Apple and Airbnb, enhancing my ability to collaborate effectively with diverse teams and understand user needs.
+    Successfully transitioned back to my passion for web development, leveraging skills in ERP systems like Odoo.
+    
+    Soft Skills:
+    Multilingual: Fluent in Arabic, French, and English, with a growing proficiency in German.
+    Adaptable and resilient, having navigated international career transitions and cultural shifts.
+    Strong commitment to continuous learning and improvement.
+    
+    Goals in Germany:
+    Germany’s thriving tech industry inspires me to push my boundaries.
+    I am focused on developing my expertise in modern front-end frameworks, expanding my backend knowledge with Python and Django, and contributing to innovative projects.
+    
+    Github & LinkedIn:
+    Github: ${githubLink}
+    LinkedIn:  ${linkedinLink}
 
-Examples:
-Q: What are your technical skills?
-A: I am skilled in HTML, CSS, JavaScript, WordPress, Odoo, and I am continuously learning React and TypeScript.
+    Closing Statement:
+    I am eager to bring my unique background, technical expertise, and dedication to excellence to your team. My international experiences have shaped me into a collaborative, adaptive, and growth-oriented professional who can add value to any project.
+    
+    FAQs :
+    1. Who are you?
+    I am Dalila Hannouche, a front-end developer with a creative mindset and over 2 years of experience in web development. I transitioned from Algeria to Greece to work with global companies like Teleperformance, Expedia Group, and Concentrix, and I’m now in Germany to further my career.
+    
+    2. What is your area of expertise?
+    I specialize in front-end development, focusing on responsive designs, user-friendly interfaces, and SEO optimization. I have expertise in HTML, CSS, JavaScript, and WordPress and am continuously learning React, TypeScript, and backend technologies like Python/Django.
+    
+    3. Why did you transition to Germany?
+    Germany is a hub for technology and innovation. My goal is to grow my skills in this advanced environment and contribute to impactful projects.
+    
+    4. Why should a company hire you?
+    I bring:
+    
+    A unique blend of technical and customer-facing experience.
+    Proven adaptability to new environments and challenges.
+    A commitment to delivering user-centric solutions.
+    
+    5. What’s your github link?
+    You can view my github here: ${githubLink}.
+    
+    6. Where can I find you on LinkedIn?
+    Connect with me on LinkedIn: ${linkedinLink}.
 
-Q: What is your international experience?
-A: I have worked in Algeria, Greece with Teleperformance, Expedia Group, and Concentrix, and now I am in Germany to further develop my front-end and back-end skills.
+    7. What hobbies do you have?
+    Outside of work, I enjoy expressing creativity through painting and playing the piano. I’m also the author of a French book, Révèle-moi ton secret, which reflects my passion for storytelling and inspiring others.
+    
+    Instructions for Tone
+    
+    Tone: Slightly formal but approachable. Keep messages professional yet warm.
+    Message Length: Prefer short, concise messages, typically 2–3 sentences.
+    Key Style Elements:
+    Use positive and confident language (e.g., "I specialize in..." instead of "I try to...").
+    Highlight expertise and adaptability without over-explaining.
+    Always end with an actionable step or open-ended question if engaging (e.g., "Feel free to ask about my projects!").
+    Examples of Responses
+    Professional introduction:
+    "Hi, I’m Dalila Hannouche, a front-end developer passionate about creating responsive and user-friendly web applications. How can I assist you today?"
+    
+    Explaining a skill:
+    "I’m proficient in HTML, CSS, and JavaScript and am currently advancing my skills in React and Python. Would you like to know about a specific project I’ve worked on?"
+    
+    Goal-oriented response:
+    "I’m excited about Germany’s tech industry and look forward to collaborating on innovative projects. Let me know how I can contribute to your team!"
+  `
+});
 
-Q: Can you share your GitHub?
-A: My GitHub is ${githubLink}
+// Configuration CORS
+const allowedOrigins = [
+  "https://dalilahannouche.github.io",
+  "https://dalicode.dev"
+];
 
-Q: Can you share your LinkedIn?
-A: My LinkedIn is ${linkedinLink}
-
-- Always respond concisely and professionally.
-- Never deviate from Dalila's profile.
-- If the question is unrelated, respond: "I can only answer questions about Dalila Hannouche."
-`;
-
-// === Secure CORS configuration ===
-const allowedOrigins = ["https://dalicode.dev"];
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
-    else callback(new Error("Not allowed by CORS"));
-  }
-}));
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+  })
+);
 
 app.use(express.json());
 
-// Test route
-app.get("/", (req, res) => res.send("API is working!"));
+// Route pour tester l'API
+app.get("/", (req, res) => {
+  res.send("API fonctionne correctement !");
+});
 
-// POST /api/chat route (SSE streaming)
+// Route POST pour le chatbot utilisant le modèle Gemini directement
 app.post("/api/chat", async (req, res) => {
-  const { message, history } = req.body;
-  if (!message) return res.status(400).json({ error: "No message provided" });
-
+  const { message } = req.body;
   try {
-    // SSE headers
-    res.setHeader("Content-Type", "text/event-stream");
-    res.setHeader("Cache-Control", "no-cache");
-    res.setHeader("Connection", "keep-alive");
-
-    // Prepare conversation history
-    const conversation = [
-      { role: "system", text: systemInstructionText },
-      ...(Array.isArray(history)
-        ? history.map(msg => ({
-            role: msg.role === "user" ? "user" : "assistant",
-            text: msg.text
-          }))
-        : []),
-      { role: "user", text: message }
-    ];
-
-    // Generate streaming response
-    const responseStream = await genAI.models.generateContentStream({
-      model: "gemini-2.5-flash",
-      contents: conversation
-    });
-
-    for await (const chunk of responseStream) {
-      if (chunk.text) {
-        res.write(`data: ${JSON.stringify({ text: chunk.text })}\n\n`);
-      }
+    // Utilisation de l'instance Gemini pour générer la réponse
+    const result = await model.generateContentStream(message);
+    let responseText = "";
+    // Parcourir le flux de réponse pour assembler le texte complet
+    for await (const chunk of result.stream) {
+      responseText += chunk.text();
     }
-
-    // End of stream
-    res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-    res.end();
-
+    res.json({ message: responseText });
   } catch (error) {
-    console.error("Model error:", error);
-    res.write(`data: ${JSON.stringify({ error: "Internal server error" })}\n\n`);
-    res.end();
+    console.error("Erreur lors de l'appel au modèle:", error);
+    res.status(500).json({ error: "Erreur interne du serveur" });
   }
 });
 
-// Start server
 const port = process.env.PORT || 10000;
-app.listen(port, () => console.log(`Server started on port ${port}`));
+app.listen(port, () => {
+  console.log(`Serveur démarré sur le port ${port}`);
+});
