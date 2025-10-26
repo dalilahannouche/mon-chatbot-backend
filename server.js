@@ -138,9 +138,10 @@ app.post("/api/chat", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
-  res.flushHeaders?.(); // 👈 envoie immédiatement les en-têtes au client
 
   try {
+    res.flushHeaders?.(); // 👈 envoie immédiatement les en-têtes au client
+
     const result = await model.generateContentStream(message);
 
     // Boucle asynchrone sur le flux Gemini
