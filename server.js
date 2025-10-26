@@ -122,6 +122,7 @@ app.get("/", (req, res) => {
 });
 
 // Route POST pour le chatbot utilisant le modèle Gemini directement
+
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
 
