@@ -7,6 +7,13 @@ dotenv.config(); // Récupérer la clé API depuis le fichier .env
 import express from "express";
 import cors from "cors";
 
+// 🔥 Empêche le buffering des réponses SSE (utile sur Render, Nginx, etc.)
+app.use((req, res, next) => {
+  res.setHeader("X-Accel-Buffering", "no"); // désactive le buffering côté proxy
+  next();
+});
+
+
 const app = express();
 
 const apiKey = process.env.API_KEY;  // Récupérer la clé API depuis les variables d'environnement
@@ -126,21 +133,26 @@ app.get("/", (req, res) => {
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
 
-  // En-têtes SSE
+  // En-têtes SSE (streaming)
   res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
   res.setHeader("Connection", "keep-alive");
+  res.flushHeaders?.(); // 👈 envoie immédiatement les en-têtes au client
 
   try {
     const result = await model.generateContentStream(message);
 
+    // Boucle asynchrone sur le flux Gemini
     for await (const chunk of result.stream) {
       const text = chunk.text();
-      // envoie chaque fragment au fur et à mesure
-      res.write(`data: ${JSON.stringify({ text })}\n\n`);
+      if (text) {
+        // Envoi immédiat de chaque fragment
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+        res.flush?.(); // 👈 vide le buffer si possible
+      }
     }
 
-    // Signal de fin
+    // Signal de fin du flux
     res.write(`data: [DONE]\n\n`);
     res.end();
   } catch (error) {
