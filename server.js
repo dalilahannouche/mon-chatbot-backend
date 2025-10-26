@@ -124,18 +124,28 @@ app.get("/", (req, res) => {
 // Route POST pour le chatbot utilisant le modèle Gemini directement
 app.post("/api/chat", async (req, res) => {
   const { message } = req.body;
+
+  // En-têtes SSE
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+
   try {
-    // Utilisation de l'instance Gemini pour générer la réponse
     const result = await model.generateContentStream(message);
-    let responseText = "";
-    // Parcourir le flux de réponse pour assembler le texte complet
+
     for await (const chunk of result.stream) {
-      responseText += chunk.text();
+      const text = chunk.text();
+      // envoie chaque fragment au fur et à mesure
+      res.write(`data: ${JSON.stringify({ text })}\n\n`);
     }
-    res.json({ message: responseText });
+
+    // Signal de fin
+    res.write(`data: [DONE]\n\n`);
+    res.end();
   } catch (error) {
-    console.error("Erreur lors de l'appel au modèle:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error("Erreur lors du streaming :", error);
+    res.write(`data: ${JSON.stringify({ error: "Erreur interne du serveur" })}\n\n`);
+    res.end();
   }
 });
 
